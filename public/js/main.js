@@ -69,5 +69,13 @@ document.querySelector(".form-content").addEventListener("submit", async functio
     body: JSON.stringify(userValues),
   });
 
-  closeOverlay();   
+  document.querySelector(".thank-you").classList.add("thank-you--visible");
+  setTimeout(closeOverlay, 2500);
+  setTimeout(() => {
+    document.querySelector(".thank-you").classList.remove("thank-you--visible");
+    document.querySelector("#name").value = "";
+    document.querySelector("#email").value = "";
+    document.querySelector("#secret").value = "";
+    document.querySelector("#comment").value = "";
+  }, 3000);    
 });
