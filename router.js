@@ -18,5 +18,6 @@ router.post("/admin/edit-pet", petController.onlyAdmin, petController.actuallyUp
 router.post("/admin/delete-pet", petController.onlyAdmin, petController.deletePet)
 router.post("/admin/delete-pet-async", petController.onlyAdmin, petController.deletePetAsync)
 router.post("/submit-contact", contactController.submitContact);
+router.get("/admin/view-pet-contacts/:id", petController.onlyAdmin, contactController.viewPetContacts)
 
 module.exports = router

@@ -1,4 +1,3 @@
-const petsCollection = require("../db").db().collection("pets")
 const sanitizeHtml = require("sanitize-html")
 const sgMail = require('@sendgrid/mail')
 const { SMTPServer } = require('smtp-server');
@@ -6,6 +5,8 @@ const simpleParser = require('mailparser').simpleParser;
 const validator = require('validator');
 const { ObjectId } = require("mongodb")
 const fs = require('fs');
+const petsCollection = require("../db").db().collection("pets")
+const contactsCollection = require("../db").db().collection("contacts")
 
 // Read the private key and certificate
 const privateKey = fs.readFileSync('/Users/ainmor/private-key.pem', 'utf8');
@@ -34,6 +35,26 @@ exports.submitContact = async function (req, res) {
       return res.json({error: "error due to spam detected"});
    }
 
+
+   if (typeof req.body.name !== "string" || req.body.name.trim() === "") { 
+      req.body.name = "";
+      console.log("invalid name detected");
+      return res.json({error: "error due to invalid name detected"});
+   }
+
+   if (typeof req.body.email !== "string" || req.body.email.trim() === "") {
+      req.body.email = "";
+      console.log("invalid email detected");
+      return res.json({error: "error due to invalid email detected"});
+   }
+
+   if (typeof req.body.comment !== "string" || req.body.comment.trim() === "") {
+      req.body.comment = "";
+      console.log("invalid comment detected");
+      return res.json({error: "error due to invalid comment detected"});
+   }
+
+   // invalid email detection
    if (!validator.isEmail(req.body.email)) {
       console.log("invalid email detected");
       return res.json({error: "error due to invalid email detected"});
@@ -46,8 +67,9 @@ exports.submitContact = async function (req, res) {
       return res.json({error: "error due to invalid id detected"});
    }
 
+   req.body.petId = ObjectId.createFromHexString(req.body.petId);
    // does pet exists a check based on the petId to the database
-   const pet = await petsCollection.findOne({_id: ObjectId.createFromHexString(req.body.petId)});
+   const pet = await petsCollection.findOne({_id: req.body.petId});
 
    if (!pet) {
       console.log("pet not found");
@@ -55,6 +77,7 @@ exports.submitContact = async function (req, res) {
    }
    
    const finalObject = {
+      petId: req.body.petId,
       name: sanitizeHtml(req.body.name, sanitizeOptions),
       email: sanitizeHtml(req.body.email, sanitizeOptions),
       comment: sanitizeHtml(req.body.comment, sanitizeOptions)
@@ -112,31 +135,7 @@ exports.submitContact = async function (req, res) {
              <p>Below is the email that you send us for the record purpose.</p>
              <p><em>${finalObject.comment}</em></p><br><p>Best regards, Ain Mor</p>`,
    };
-
-   try {
-      transporter.sendMail(mailOptions, (error, info) => {
-         if (error) {
-            return console.log(`Error: ${error}`);
-      }
-      console.log('Email sent: ' + info.response);
-   });
-   } catch (error) {
-      console.error(error);
   
-      if (error.response) {
-        console.error(error.response.body)
-      }      
-   }  
-
-   // try {
-   //    await sgMail.send(msg);
-   //  } catch (error) {
-   //    console.error(error);
-  
-   //    if (error.response) {
-   //      console.error(error.response.body)
-   //    }
-   //  }   
 
     const msg_to_owner = {
       to: 'ainbmor@gmail.com',
@@ -147,35 +146,57 @@ exports.submitContact = async function (req, res) {
             customer <strong>${finalObject.email}</strong> and inform the sales department immediately to contact the customer for further process.</p>
              <p>Below is the email that we have received from the customer ${finalObject.name}.</p>
              <p><em>${finalObject.comment}</em></p><br><p>Best regards, Ain Mor</p>`,
-   };
+   }; 
+     
 
-   // try {
-   //    await sgMail.send(msg_to_owner);
-   //  } catch (error) {
-   //    console.error(error);
-  
-   //    if (error.response) {
-   //      console.error(error.response.body)
-   //    }
-   //  } 
+   try {
+      // Send the email to the customer
+      const promise1 = transporter.sendMail(mailOptions, async (error, info) => {
+         if (error) {
+            return console.log(`Error: ${error}`);
+      }
+      console.log('Email sent: ' + info.response);
 
-   try   {
-      transporter.sendMail(msg_to_owner, (error, info) => {
+      // Send the email to the owner
+      const promise2 = transporter.sendMail(msg_to_owner, (error, info) => {
          if (error) {
             return console.log(`Error: ${error}`);
         }
         console.log('Email sent: ' + info.response);
-     });
-   }
-   catch (error) {
+      });
+
+      // save the contact to the database
+      const contact = await contactsCollection.insertOne(finalObject);
+
+      await Promise.all([promise1, promise2, contact]);
+   });
+   } catch (error) {
       console.error(error);
   
       if (error.response) {
         console.error(error.response.body)
-      }
-   }
-   
+      }      
+   }  
 
    console.log("submitContact: ",finalObject);
    res.send("thanks for contacting us!  We will get back to you shortly.");
+}
+
+
+exports.viewPetContacts = async function (req, res) {
+   if (!ObjectId.isValid(req.params.id)) {
+      console.log("invalid id detected");
+      return res.redirect("/")
+   }
+
+   // find the contacts based on the petId
+   const pet = await petsCollection.findOne({_id: ObjectId.createFromHexString(req.params.id)});
+      
+   if (!pet) {
+      console.log("pet not found");
+      return res.redirect("/")
+   } 
+
+   const contacts = await contactsCollection.find({petId: ObjectId.createFromHexString(req.params.id)}).toArray()
+   res.render("pet-contacts", {contacts, pet})
 }
