@@ -436,6 +436,7 @@ textarea.form-field {
 }
 
 .form-overlay {
+  overflow-y: auto;
   background-color: rgba(255, 255, 255, .85);
   backdrop-filter: blur(5px);
   position: fixed;
@@ -468,13 +469,40 @@ textarea.form-field {
   flex: 1;
   align-self: center;  
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 1fr;
 }
 
 .form-photo {
   order: 1;
   grid-row: 1;
   position: relative;
+  height: 200px;
+}
+
+.form-content {
+  padding: 40px 35px;
+  position: relative;
+}
+
+@media screen and (min-width: 745px) {
+
+  .form-overlay {
+    display: flex;
+    justify-content: center; 
+    align-content: center;
+  }
+
+  .form-content {
+    padding: 50px 54px;
+    position: relative;
+  }
+
+  .form-overlay-inner {
+    grid-template-columns: 340px 1fr;
+  }
+  .form-photo {
+    height: auto;
+  }  
 }
 
 .form-photo p {
@@ -508,12 +536,8 @@ textarea.form-field {
   justify-content: end;
 }
 
-.form-content {
-  padding: 50px 54px;
-  position: relative;
-}
-
 .close-form-overlay {
+  z-index: 101;
   position: absolute;
   top: 10px;
   right: 16px;

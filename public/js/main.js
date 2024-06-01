@@ -41,12 +41,14 @@ function openOverlay(el) {
   document.querySelector(".form-photo img").src = el.closest(".pet-card").querySelector(".pet-card-photo img").src;
 
   document.querySelector(".form-overlay").classList.add("form-overlay--is-visible");
+  document.querySelector(":root").style.overflowY = "hidden";
 }
 
 document.querySelector(".close-form-overlay").addEventListener("click", closeOverlay);
 
 function closeOverlay() {
   document.querySelector(".form-overlay").classList.remove("form-overlay--is-visible");
+  document.querySelector(":root").style.overflowY = "";
 }
 
 document.querySelector(".form-content").addEventListener("submit", async function (e) {
